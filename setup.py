@@ -25,6 +25,7 @@ setup(
     install_requires=reqs,
     packages=find_packages(exclude=['tests']),
     license='Apache 2.0',
+    scripts=['scripts/pijon'],
     classifiers=[
         'Development Status :: 2 - Pre-Alpha',
         'Intended Audience :: Developers',
