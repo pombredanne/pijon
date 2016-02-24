@@ -57,24 +57,15 @@ class Pijon(object):
 
         return migrations
 
-    def migrate(self, data, in_place=True):
-        new = data.copy() if not in_place else None
+    def _run_migrations(self, data):
+        data_version = data.get('version', 0)
         for ident, module in self.migrations.items():
-            module.migrate(new if new else data)
-        return new if new else data
+            migration_version = int(ident)
+            if migration_version <= data_version:
+                continue
+            module.migrate(data)
+            data['version'] = migration_version
+        return data
 
-
-if __name__ == '__main__':
-    root = logging.getLogger()
-    root.setLevel(logging.DEBUG)
-    ch = logging.StreamHandler(sys.stdout)
-    ch.setLevel(logging.DEBUG)
-    formatter = logging.Formatter('%(levelname)5s %(asctime)s [%(name)s] %(message)s')
-    ch.setFormatter(formatter)
-    root.addHandler(ch)
-
-    data = {'one': 'hello', 'two': 'yo'}
-    print(data)
-    new = migrate(data, in_place=False)
-    print(new)
-    print(data)
+    def migrate(self, data, in_place=True):
+        return self._run_migrations(data if in_place else data.copy())
