@@ -1,28 +1,60 @@
 #!/usr/bin/env python
 
 from argparse import ArgumentParser
+import os
 from pijon import Pijon
 
 
 def parse_args():
     parser = ArgumentParser()
+    subparsers = parser.add_subparsers(dest='command')
     parser.add_argument(
         '-f', '--folder', type=str, default='migrations/',
         help="Migrations' folder"
     )
 
-    subparsers = parser.add_subparsers()
+    # New migration
+    sub = subparsers.add_parser('new', help='Create a migration file')
+    sub.add_argument('name', type=str, nargs='+', help='Migration name')
 
-    new = subparsers.add_parser('new', help='new migration file')
-    new.add_argument('name', type=str, help='Migration name')
+    # Migrate
+    sub = subparsers.add_parser('migrate', help='Migrate')
+    sub.add_argument('input', type=str, help='JSON file to migrate')
+    sub.add_argument('output', type=str, help='JSON file to write')
 
-    return parser.parse_args()
+    return parser, parser.parse_args()
+
+
+class PijonScript(object):
+
+    def __init__(self, args):
+        self.args = args
+        self.pijon = Pijon(folder=args.folder)
+
+    @classmethod
+    def execute(cls, args):
+        script = cls(args)
+        getattr(script, args.command)()
+
+    def new(self):
+        filename = '{0:04d}_{name}.py'.format(
+            self.pijon.last_migration + 1,
+            name=self.args.name
+        )
+        with open(os.path.join(self.pijon.folder, filename), 'w') as f:
+            f.write('\ndef migrate(data):\n    pass\n')
+        print("File '{}' created".format(filename))
+
+    def migrate(self):
+        pass
 
 
 def main():
-    args = parse_args()
-    p = Pijon(folder=args.folder)
-    print(p.migrations)
+    parser, args = parse_args()
+    if not args.command:
+        print(parser.format_help())
+        return
+    PijonScript.execute(args)
 
 
 if __name__ == '__main__':

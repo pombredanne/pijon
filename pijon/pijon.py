@@ -25,12 +25,19 @@ class Pijon(object):
     MIGRATION_REGEX = r'(?P<ident>\d{4})_(?P<name>\w+)\.py'
 
     def __init__(self, folder=None):
-        self._folder = folder or self.DEFAULT_FOLDER
+        self.folder = folder or self.DEFAULT_FOLDER
         self.migrations = self.retrieve_migrations()
+
+    @property
+    def last_migration(self):
+        """
+        Returns last migration identity number
+        """
+        return int(next(reversed(self.migrations)))
 
     def retrieve_migrations(self):
         migrations = collections.OrderedDict()
-        for filename in sorted(os.listdir(self._folder)):
+        for filename in sorted(os.listdir(self.folder)):
             match = re.match(self.MIGRATION_REGEX, filename)
             if not match:
                 log.debug('pass: %s', filename)
@@ -42,7 +49,7 @@ class Pijon(object):
 
             # Load module
             module = machinery.SourceFileLoader(
-                name, os.path.join(self._folder, filename)
+                name, os.path.join(self.folder, filename)
             ).load_module(name)
 
             migrations[ident] = module
