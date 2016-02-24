@@ -1,0 +1,29 @@
+#!/usr/bin/env python
+
+from argparse import ArgumentParser
+from pijon import Pijon
+
+
+def parse_args():
+    parser = ArgumentParser()
+    parser.add_argument(
+        '-f', '--folder', type=str, default='migrations/',
+        help="Migrations' folder"
+    )
+
+    subparsers = parser.add_subparsers()
+
+    new = subparsers.add_parser('new', help='new migration file')
+    new.add_argument('name', type=str, help='Migration name')
+
+    return parser.parse_args()
+
+
+def main():
+    args = parse_args()
+    p = Pijon(folder=args.folder)
+    print(p.migrations)
+
+
+if __name__ == '__main__':
+    main()

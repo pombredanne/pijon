@@ -1,82 +1,73 @@
-import importlib
-import json
+#!/usr/bin/env python
+
+import collections
+from importlib import machinery
 import logging
 import os
 import re
 import sys
 
 
+__all__ = ['Pijon', 'migrate']
+
+
 log = logging.getLogger(__name__)
 
 
-class Pijon():
+def migrate(data, in_place=True, folder=None):
+    p = Pijon(folder)
+    return p.migrate(data, in_place=in_place)
 
-    def __init__(self, migration_folder, files_format='migration_\d+_.*'):
-        sys.path.append(migration_folder)
-        self.folder = migration_folder
-        self.files_format = files_format
-        self.migrations = self.list_migrations()
 
-    @classmethod
-    def list(cls, migrations_folder='./pijon', file_format='migration_\d+_.*'):
-        return Pijon(migrations_folder).migrations
+class Pijon(object):
 
-    def list_migrations(self):
-        files = os.listdir(self.folder)
-        regex = re.compile("({})\.py$".format(self.files_format))
-        migrations = [
-            regex.findall(file)[0]
-            for file in files
-            if regex.findall(file)
-        ]
-        log.debug("Migrations steps found {}".format(migrations))
+    DEFAULT_FOLDER = 'migrations'
+    MIGRATION_REGEX = r'(?P<ident>\d{4})_(?P<name>\w+)\.py'
+
+    def __init__(self, folder=None):
+        self._folder = folder or self.DEFAULT_FOLDER
+        self.migrations = self.retrieve_migrations()
+
+    def retrieve_migrations(self):
+        migrations = collections.OrderedDict()
+        for filename in sorted(os.listdir(self._folder)):
+            match = re.match(self.MIGRATION_REGEX, filename)
+            if not match:
+                log.debug('pass: %s', filename)
+                continue
+
+            # Match migration filename pattern
+            ident = match.group('ident')
+            name = match.group('name')
+
+            # Load module
+            module = machinery.SourceFileLoader(
+                name, os.path.join(self._folder, filename)
+            ).load_module(name)
+
+            migrations[ident] = module
+            log.info("Loaded module '%s'", module)
+
         return migrations
 
-    def migrate_step(self, step, data):
-        """
-        Perform a migration step
-        """
-        log.debug("Migrating step {}".format(step))
-        folder = re.findall('[^\/]+$', self.folder)[0]
-        module = "{folder}.{step}".format(folder=folder, step=step)
-        importlib.import_module(module)
-        return sys.modules[module].migrate(data)
+    def migrate(self, data, in_place=True):
+        new = data.copy() if not in_place else None
+        for ident, module in self.migrations.items():
+            module.migrate(new if new else data)
+        return new if new else data
 
-    def _migrate(self, input_data):
-        """
-        perform all migrations registered
-        """
-        data = input_data
-        for step in self.migrations:
-            data = self.migrate_step(step, data)
-        return data
 
-    @classmethod
-    def migrate(cls, in_data, direct_input=False, direct_output=False, output_filename=None,
-                migrations_folder='./pijon', file_format='migration_\d+_.*'):
-        """
-        migrate a given json file.
-        if output_filename is not given, update the input file
-        if out is True returns the content rather than writting to file
-        """
-        pijon = Pijon(migrations_folder, file_format)
-        input_json = None
-        if direct_input:
-            input_data = json.loads(in_data)
-        else:
-            with open(in_data, 'r') as input_file:
-                input_data = json.loads(input_file.read())
+if __name__ == '__main__':
+    root = logging.getLogger()
+    root.setLevel(logging.DEBUG)
+    ch = logging.StreamHandler(sys.stdout)
+    ch.setLevel(logging.DEBUG)
+    formatter = logging.Formatter('%(levelname)5s %(asctime)s [%(name)s] %(message)s')
+    ch.setFormatter(formatter)
+    root.addHandler(ch)
 
-        result = pijon._migrate(input_data)
-        if direct_output:
-            return json.dumps(result)
-        else:
-            if output_filename is None:
-                output_filename = input_filename
-                log.info('No output file name provided, the input one will be updated')
-
-            with open(output_filename, 'w') as output_file:
-                json.dump(
-                    result, output_file,
-                    sort_keys=True, indent=4, separators=(',', ': ')
-                )
+    data = {'one': 'hello', 'two': 'yo'}
+    print(data)
+    new = migrate(data, in_place=False)
+    print(new)
+    print(data)
