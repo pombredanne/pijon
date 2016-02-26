@@ -11,7 +11,7 @@ def parse_args():
     parser = ArgumentParser()
     subparsers = parser.add_subparsers(dest='command')
     parser.add_argument(
-        '-f', '--folder', type=str, default='migrations/',
+        '-d', '--directory', type=str, default='migrations/',
         help="Migrations' folder"
     )
 
@@ -23,6 +23,11 @@ def parse_args():
     sub = subparsers.add_parser('migrate', help='Migrate')
     sub.add_argument('input', type=str, help='JSON file to migrate')
     sub.add_argument('output', type=str, help='JSON file to write')
+    sub.add_argument('-t', '--target', type=str, help='Target migration')
+
+    # List migrations
+    sub = subparsers.add_parser('list', help='List migrations')
+    sub.add_argument('-f', '--file', type=str, help='Compare to your JSON file')
 
     return parser, parser.parse_args()
 
@@ -31,7 +36,7 @@ class PijonScript(object):
 
     def __init__(self, args):
         self.args = args
-        self.pijon = Pijon(folder=args.folder)
+        self.pijon = Pijon(folder=args.directory)
 
     @classmethod
     def execute(cls, args):
@@ -39,20 +44,56 @@ class PijonScript(object):
         getattr(script, args.command)()
 
     def new(self):
+        """
+        Create a new migration
+        """
+
         filename = '{0:04d}_{name}.py'.format(
             self.pijon.last_migration + 1,
             name='_'.join(self.args.name)
         )
+
         with open(os.path.join(self.pijon.folder, filename), 'w') as f:
             f.write('\ndef migrate(data):\n    pass\n')
+
         print("File '{}' created".format(filename))
 
     def migrate(self):
+        """
+        Migrate everything or to the targeted migration
+        """
+        target = self.args.target
+        if target and target not in self.pijon.migrations.keys():
+            print('Unknown migration {}'.format(target))
+            return
+
+        # Read file
         with open(self.args.input, 'r') as f:
             input_data = json.loads(f.read())
-        self.pijon.migrate(input_data)
+
+        # Migrate in-place
+        self.pijon.migrate(
+            self.args.input,
+            target=int(target) if target else None
+        )
+
+        # Write to file
         with open(self.args.output, 'w') as f:
             f.write(json.dumps(input_data, sort_keys=True, indent=4))
+
+    def list(self):
+        version = 0
+        if self.args.file:
+            with open(self.args.file, 'r') as f:
+                version = json.loads(f.read()).get('version')
+        if not version:
+            print('* JSON file not yet migrated')
+        for ident, module in self.pijon.migrations.items():
+            print('{}{} - {}'.format(
+                '* ' if int(ident) == version else '',
+                ident,
+                module.__name__
+            ))
 
 
 def main():
