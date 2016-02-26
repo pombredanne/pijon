@@ -47,14 +47,18 @@ class PijonScript(object):
         """
         Create a new migration
         """
-
         filename = '{0:04d}_{name}.py'.format(
             self.pijon.last_migration + 1,
             name='_'.join(self.args.name)
         )
 
         with open(os.path.join(self.pijon.folder, filename), 'w') as f:
-            f.write('\ndef migrate(data):\n    pass\n')
+            f.write((
+                'import logging\n\n\n'
+                'log = logging.getLogger(__name__)\n\n\n'
+                'def migrate(data):\n'
+                '    return data\n'
+            ))
 
         print("File '{}' created".format(filename))
 
@@ -73,21 +77,25 @@ class PijonScript(object):
 
         # Migrate in-place
         self.pijon.migrate(
-            self.args.input,
+            input_data,
+            in_place=True,
             target=int(target) if target else None
         )
 
         # Write to file
         with open(self.args.output, 'w') as f:
-            f.write(json.dumps(input_data, sort_keys=True, indent=4))
+            f.write(json.dumps(input_data, sort_keys=True, indent=4) + '\n')
 
     def list(self):
+        """
+        List available migrations
+        """
         version = 0
         if self.args.file:
             with open(self.args.file, 'r') as f:
                 version = json.loads(f.read()).get('version')
-        if not version:
-            print('* JSON file not yet migrated')
+            if not version:
+                print('* JSON file not yet migrated')
         for ident, module in self.pijon.migrations.items():
             print('{}{} - {}'.format(
                 '* ' if int(ident) == version else '',

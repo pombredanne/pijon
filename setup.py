@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-from pip.req import parse_requirements
 from setuptools import setup, find_packages
 
 
@@ -10,10 +9,6 @@ with open('VERSION.txt', 'r') as v:
 with open('DESCRIPTION', 'r') as d:
     long_description = d.read()
 
-# Requirements
-install_reqs = parse_requirements('requirements.txt', session='dummy')
-reqs = [str(ir.req) for ir in install_reqs]
-
 setup(
     name='pijon',
     description='Tool and library to help with json based schema and data migration.',
@@ -22,7 +17,6 @@ setup(
     author='Optiflows R&D',
     author_email='rand@surycat.com',
     version=version,
-    install_requires=reqs,
     packages=find_packages(exclude=['tests']),
     license='Apache 2.0',
     scripts=['scripts/pijon'],

@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 import collections
 from importlib import machinery
 import logging
@@ -8,12 +6,10 @@ import re
 
 
 __all__ = ['Pijon', 'migrate']
-
-
 log = logging.getLogger(__name__)
 
 
-def migrate(data, in_place=True, folder=None):
+def migrate(data, in_place=False, folder=None):
     p = Pijon(folder)
     return p.migrate(data, in_place=in_place)
 
@@ -25,7 +21,7 @@ class Pijon(object):
 
     def __init__(self, folder=None):
         self.folder = folder or self.DEFAULT_FOLDER
-        self.migrations = self.retrieve_migrations()
+        self.migrations = self.fetch_migrations()
 
     @property
     def last_migration(self):
@@ -34,7 +30,7 @@ class Pijon(object):
         """
         return int(next(reversed(self.migrations))) if self.migrations else 0
 
-    def retrieve_migrations(self):
+    def fetch_migrations(self):
         """
         Return the `migrations` list
         """
@@ -63,7 +59,7 @@ class Pijon(object):
             ).load_module(name)
 
             migrations[ident] = module
-            log.info("Loaded module '%s'", module)
+            log.debug("Loaded module '%s'", module)
 
         return migrations
 
@@ -83,11 +79,11 @@ class Pijon(object):
             if target and data.get('version', 0) >= target:
                 break
 
-            log.info("Applying migration '%s'", ident)
+            log.info("Applying migration %s '%s'", ident, module.__name__)
             module.migrate(data)
             data['version'] = migration_version
 
         return data
 
-    def migrate(self, data, in_place=True, target=None):
+    def migrate(self, data, in_place=False, target=None):
         return self._run_migrations(data if in_place else data.copy(), target)
