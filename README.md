@@ -1,28 +1,43 @@
-# pijon
-A json migration tool
+# pijon :bird:
+
+A json migration tool available through both a Python library and tool script.
 
 
-## tl;dr
-```python
-Pijon.migrate_file('json_file.json', '/folder/with/migrations')
+## Getting started
+
+### Requirements
+
+* Python >= 3.5
+
+### Installation
+
+```bash
+pip install pijon
 ```
 
 
-## Prepare a new migration:
-add all the migrations script in a given folder.
-You can use a custom naming (ex 'migration_000_first.py') and specify the format along the folder
-```python
-Pijon.migrate_file('json_file.json', '/folder/with/migrations', file_format='migration_\d+_.+')
+## Usage
+
+### Script tool
+
+The client gives you access to a powerful set of commands aimed to handle your migrations.
+
+Here is a simple example:
+```bash
+pijon migrate input.json output.json
 ```
 
-## Run your migrations
-you can migrate either a file or a direct input in json format:
-```python
-Pijon.migrate('{"my": "awesome", "json": null}', '/folder/with/migrations')
-Pijon.migrate_file('json_file.json', '/folder/with/migrations')
-```
+Basic commands are:
+* `new` to generate a new migration file with a simple template.
+* `list` to fetch the list of available migrations.
+* `migrate` to perform the migrations.
 
-if an output_file is provided, the updated json will be written inside and input file will remain unchanged
+See `pijon --help` for more details (for instance, how to select a specific migration target).
+
+### Library API
+
+Here is the same example as above using the Python API:
 ```python
-Pijon.migrate_file('json_file.json', '/folder/with/migrations', output_file='new_json.json')
+import pijon
+pijon.migrate({'my key': 'my value'})
 ```
