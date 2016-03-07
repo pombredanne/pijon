@@ -96,11 +96,11 @@ class PijonScript(object):
                 version = json.loads(f.read()).get('version')
             if not version:
                 print('* JSON file not yet migrated')
-        for ident, module in self.pijon.migrations.items():
+        for ident, migration in self.pijon.migrations.items():
             print('{}{} - {}'.format(
                 '* ' if int(ident) == version else '',
                 ident,
-                module.__name__
+                migration.name
             ))
 
 
