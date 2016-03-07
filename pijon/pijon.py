@@ -46,7 +46,6 @@ class Pijon(object):
         for filename in listdir:
             match = re.match(self.MIGRATION_REGEX, filename)
             if not match:
-                log.debug('pass: %s', filename)
                 continue
 
             # Match migration filename pattern
@@ -59,7 +58,7 @@ class Pijon(object):
             ).load_module(name)
 
             migrations[ident] = module
-            log.debug("Loaded module '%s'", module)
+            log.debug("Fetching migration {} ({})".format(ident, name))
 
         return migrations
 
@@ -73,13 +72,15 @@ class Pijon(object):
 
             # Skip if migration is past
             if migration_version <= initial_version:
+                log.debug("Ignoring migration {}".format(ident))
                 continue
 
             # Stop if target is reached
             if target and data.get('version', 0) >= target:
+                log.info("Migration target ({}) is reached".format(target))
                 break
 
-            log.info("Applying migration %s '%s'", ident, module.__name__)
+            log.info("Applying migration {}".format(ident))
             module.migrate(data)
             data['version'] = migration_version
 
