@@ -2,17 +2,25 @@
 
 A json migration tool available through both a Python library and tool script.
 
+This is an experimental fork backported to Python 2.7
+
 
 ## Getting started
 
 ### Requirements
 
-* Python >= 3.5
+* Python >= 3.5 or >= 2.7
 
 ### Installation
 
 ```bash
 pip install pijon
+```
+For Python 2.7, you will need instead to fetch a clone then:
+
+```bash
+pip install thirdparty/importlib3-3.5.0.3.dev0-py2-none-any.whl
+pip install -e .
 ```
 
 
